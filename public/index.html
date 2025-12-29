@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0060df">
+  <title>Eco AI Search - Deep Research Assistant</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="title">🌱 Eco AI Search</h1>
+      <p class="subtitle">Deep Research • Detailed Answers • Full Citations</p>
+    </header>
+
+    <div class="search-section">
+      <div class="search-box">
+        <textarea 
+          id="query" 
+          placeholder="Ask anything for detailed research..."
+          rows="3"
+        ></textarea>
+        <button id="search-btn" class="search-btn">
+          <span>Research</span>
+          <span>🔍</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p><span id="stage">Searching</span><span class="dots">...</span></p>
+      <p class="sub">This takes 15-30 seconds for quality research</p>
+    </div>
+
+    <div id="results" class="results hidden">
+      <div class="answer-card">
+        <div class="header-row">
+          <h2>📄 Answer</h2>
+          <button id="copy-btn" title="Copy">📋</button>
+        </div>
+        <div id="answer-content"></div>
+      </div>
+
+      <div class="sources-section">
+        <h3>📚 Sources (<span id="source-count">0</span>)</h3>
+        <div id="sources-list"></div>
+      </div>
+
+      <button id="new-search-btn" class="secondary-btn">New Search</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

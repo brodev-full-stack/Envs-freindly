@@ -1,0 +1,19 @@
+{
+  "name": "eco-ai-search",
+  "version": "1.0.0",
+  "description": "Lightweight AI search engine with detailed answers",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "keywords": ["ai", "search", "groq", "searxng"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}

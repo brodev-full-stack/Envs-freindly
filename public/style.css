@@ -1,0 +1,269 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;600&family=Zilla+Slab:wght@400;600&display=swap');
+
+:root {
+  --primary: #0060df;
+  --secondary: #ff4f5e;
+  --bg: #f9f9fb;
+  --card: #ffffff;
+  --text: #0c0c0d;
+  --text-light: #737373;
+  --border: #d7d7db;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Zilla Slab', serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.header {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.title {
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  font-family: 'Fira Sans', sans-serif;
+  color: var(--text-light);
+  margin-top: 0.5rem;
+}
+
+.search-box {
+  display: flex;
+  gap: 1rem;
+  background: var(--card);
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+}
+
+#query {
+  flex: 1;
+  padding: 1rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+#query:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.search-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Fira Sans', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.search-btn:hover {
+  background: #0050c8;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.dots::after {
+  content: '.';
+  animation: dots 1.5s steps(4) infinite;
+}
+
+@keyframes dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+.sub {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  margin-top: 0.5rem;
+}
+
+.answer-card {
+  background: var(--card);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+  border-left: 4px solid var(--secondary);
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--border);
+}
+
+h2 {
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 1.5rem;
+}
+
+#copy-btn {
+  padding: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+#copy-btn:hover {
+  background: var(--primary);
+}
+
+.answer-content {
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.answer-content p {
+  margin-bottom: 1.5rem;
+}
+
+.answer-content a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.answer-content a:hover {
+  color: var(--secondary);
+}
+
+.sources-section h3 {
+  font-family: 'Fira Sans', sans-serif;
+  margin-bottom: 1rem;
+}
+
+.source-card {
+  background: var(--card);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.source-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.source-header {
+  display: flex;
+  gap: 1rem;
+  align-items: start;
+}
+
+.source-number {
+  min-width: 32px;
+  height: 32px;
+  background: var(--secondary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.source-title {
+  font-family: 'Fira Sans', sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+}
+
+.source-url {
+  color: var(--primary);
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+  word-break: break-all;
+}
+
+.source-snippet {
+  color: var(--text-light);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.secondary-btn {
+  display: block;
+  margin: 2rem auto;
+  padding: 1rem 2rem;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-family: 'Fira Sans', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary-btn:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .search-box {
+    flex-direction: column;
+  }
+  
+  .title {
+    font-size: 2rem;
+  }
+}
