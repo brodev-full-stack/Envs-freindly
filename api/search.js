@@ -10,8 +10,27 @@ const CONFIG = {
     'https://searx.space',
     'https://search.disroot.org'
   ],
-  maxSources: 6
+  maxSources: 8
 };
+
+async function searchGitHub(query) {
+  try {
+    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&per_page=3`;
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/vnd.github.v3+json' }
+    });
+    const data = await response.json();
+    return (data.items || []).map(repo => ({
+      title: `GitHub: ${repo.full_name}`,
+      url: repo.html_url,
+      content: repo.description || 'No description available.',
+      source: 'GitHub'
+    }));
+  } catch (err) {
+    console.error('GitHub search failed:', err);
+    return [];
+  }
+}
 
 async function searchWikipedia(query) {
   try {
@@ -22,21 +41,16 @@ async function searchWikipedia(query) {
       format: 'json',
       origin: '*'
     });
-    
     const response = await fetch(url);
     const data = await response.json();
-    
     if (!data.query?.search?.length) return [];
-
-    // Get snippets and titles
-    return data.query.search.slice(0, 3).map(result => ({
-      title: result.title,
+    return data.query.search.slice(0, 2).map(result => ({
+      title: `Wikipedia: ${result.title}`,
       url: `https://en.wikipedia.org/wiki/${encodeURIComponent(result.title)}`,
-      content: result.snippet.replace(/<\/?[^>]+(>|$)/g, ""), // Remove HTML tags
+      content: result.snippet.replace(/<\/?[^>]+(>|$)/g, ""),
       source: 'Wikipedia'
     }));
   } catch (err) {
-    console.error('Wikipedia search failed:', err);
     return [];
   }
 }
@@ -57,73 +71,73 @@ module.exports = async (req, res) => {
     if (!GROQ_API_KEY) return res.status(500).json({ error: 'API key not configured' });
 
     let sources = [];
-    let lastError = null;
+    
+    // Step 1: Parallel search for GitHub and Wikipedia
+    const [githubResults, wikiResults] = await Promise.all([
+      searchGitHub(query),
+      searchWikipedia(query)
+    ]);
+    sources = [...githubResults, ...wikiResults];
 
-    // Step 1: Try SearxNG instances
+    // Step 2: Try SearxNG (which includes Ecosia results via its engines)
     const shuffledInstances = CONFIG.searxngInstances.sort(() => Math.random() - 0.5);
     for (const instance of shuffledInstances) {
       try {
         const searchUrl = `${instance}/search?` + new URLSearchParams({
           q: query,
           format: 'json',
-          engines: 'google,bing,duckduckgo'
+          engines: 'google,bing,duckduckgo,ecosia' // Added Ecosia
         });
 
         const searchResponse = await fetch(searchUrl, { 
-          timeout: 6000,
+          timeout: 5000,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'application/json'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
           }
         });
         
-        const contentType = searchResponse.headers.get('content-type');
-        if (searchResponse.ok && contentType && contentType.includes('application/json')) {
+        if (searchResponse.ok) {
           const data = await searchResponse.json();
           if (data?.results?.length > 0) {
-            sources = data.results
+            const webSources = data.results
               .filter(r => r.content && r.content.length > 50)
-              .slice(0, CONFIG.maxSources)
-              .map((r, i) => ({
-                id: i + 1,
-                url: r.url,
+              .slice(0, 4)
+              .map(r => ({
                 title: r.title,
+                url: r.url,
                 content: r.content,
-                snippet: r.content.substring(0, 200) + '...'
+                source: r.engine || 'Web'
               }));
+            sources = [...sources, ...webSources];
             break; 
           }
         }
       } catch (err) {
-        lastError = err;
-      }
-    }
-
-    // Step 2: Fallback to Wikipedia if no sources found
-    if (sources.length === 0) {
-      console.log('Falling back to Wikipedia...');
-      const wikiResults = await searchWikipedia(query);
-      if (wikiResults.length > 0) {
-        sources = wikiResults.map((r, i) => ({
-          id: i + 1,
-          url: r.url,
-          title: r.title,
-          content: r.content,
-          snippet: r.content + ' (Source: Wikipedia)'
-        }));
+        console.warn(`SearxNG instance failed: ${instance}`);
       }
     }
 
     if (sources.length === 0) {
-      return res.status(503).json({ 
-        error: 'All search engines are currently busy. Please try again in a few seconds.',
-        details: lastError ? lastError.message : 'No results found'
-      });
+      return res.status(503).json({ error: 'No information found. Please try a different query.' });
     }
 
-    // Step 3: Build prompt and call Groq
-    const sourceText = sources.map((s, i) => `[${i + 1}] ${s.title}\n${s.content}\n---`).join('\n\n');
-    const prompt = `Research Query: "${query}"\n\nSources:\n${sourceText}\n\nProvide a comprehensive, detailed answer (400-600 words) that:\n1. Directly answers the query in the opening\n2. Provides deep analysis with multiple paragraphs\n3. Includes specific data, numbers, and facts\n4. Cites EVERY claim with [1], [2], etc.\n5. Covers multiple perspectives if sources differ\n6. Is well-structured with logical flow\n7. Explains context and background\n8. Only uses information from the provided sources\n\nAnswer:`;
+    // Step 3: Structured Prompt for Summary + Deep Dive
+    const sourceText = sources.map((s, i) => `[${i + 1}] ${s.title} (${s.source})\n${s.content}\n---`).join('\n\n');
+    
+    const prompt = `Research Query: "${query}"
+
+Sources:
+${sourceText}
+
+Instructions:
+1. Start with a "GENERAL SUMMARY" (approx 100 words) that gives a quick overview.
+2. Follow with a "DEEP ANALYSIS" (400-500 words) that provides a detailed breakdown.
+3. Use multiple paragraphs and cite EVERY claim with [1], [2], etc.
+4. Identify 5-8 key technical terms or important concepts and wrap them in double asterisks like **Term** so they can be highlighted.
+5. Only use information from the provided sources.
+6. Language: English only.
+
+Answer:`;
 
     const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -134,12 +148,11 @@ module.exports = async (req, res) => {
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: 'You are an expert research assistant that provides detailed, well-cited answers. Always cite sources with [number] and provide comprehensive explanations.' },
+          { role: 'system', content: 'You are an expert research assistant. Provide a structured summary followed by a deep analysis. Wrap key terms in double asterisks.' },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 2500,
-        temperature: 0.2,
-        top_p: 0.9
+        max_tokens: 3000,
+        temperature: 0.3
       })
     });
 
@@ -148,11 +161,10 @@ module.exports = async (req, res) => {
     const groqData = await groqResponse.json();
     return res.status(200).json({ 
       answer: groqData.choices[0].message.content,
-      sources: sources
+      sources: sources.map((s, i) => ({ ...s, id: i + 1 }))
     });
 
   } catch (error) {
-    console.error('Server Error:', error);
-    return res.status(500).json({ error: 'An internal server error occurred.', message: error.message });
+    return res.status(500).json({ error: 'Server error', message: error.message });
   }
 };

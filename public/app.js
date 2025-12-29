@@ -91,18 +91,25 @@ class UI {
     this.elements.loading.classList.add('hidden');
     this.elements.results.classList.remove('hidden');
 
-    // Format answer with citations
+    // Format answer with citations and highlights
     const formatted = result.answer
       .split('\n\n')
       .map(p => {
-        const withLinks = p.replace(/\[(\d+)\]/g, (match, num) => {
+        // Handle Citations
+        let content = p.replace(/\[(\d+)\]/g, (match, num) => {
           const source = result.sources.find(s => s.id === parseInt(num));
           if (source) {
             return `<sup><a href="${source.url}" target="_blank" title="${this.escape(source.title)}">[${num}]</a></sup>`;
           }
           return match;
         });
-        return `<p>${withLinks}</p>`;
+
+        // Handle Highlights (wrap **Term** in span)
+        content = content.replace(/\*\*(.*?)\*\*/g, (match, term) => {
+          return `<span class="highlight" onclick="window.ui.lookupTerm('${this.escape(term)}')">${term}</span>`;
+        });
+
+        return `<p>${content}</p>`;
       })
       .join('');
 
@@ -152,6 +159,38 @@ class UI {
     div.textContent = text;
     return div.innerHTML;
   }
+
+  async lookupTerm(term) {
+    // Remove existing modal if any
+    const existing = document.querySelector('.term-modal');
+    if (existing) existing.remove();
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'term-modal';
+    modal.innerHTML = `
+      <div class="modal-header">
+        <span class="modal-title">Term Lookup: ${term}</span>
+        <span class="close-modal" onclick="this.parentElement.parentElement.remove()">✕</span>
+      </div>
+      <div class="modal-body">
+        <p id="modal-text">Researching term...</p>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    try {
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: `Define and explain the term "${term}" in the context of research.` })
+      });
+      const data = await response.json();
+      document.getElementById('modal-text').textContent = data.answer.split('\n')[0]; // Show first paragraph
+    } catch (err) {
+      document.getElementById('modal-text').textContent = 'Could not lookup term.';
+    }
+  }
 }
 
 function updateStage(stage) {
@@ -162,5 +201,5 @@ function updateStage(stage) {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   const engine = new SearchEngine();
-  new UI(engine);
+  window.ui = new UI(engine);
 });

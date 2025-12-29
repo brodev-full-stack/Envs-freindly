@@ -141,6 +141,57 @@ body {
   margin-bottom: 2rem;
 }
 
+.highlight {
+  background-color: #c1f0c1; /* Pastel Green */
+  padding: 0 2px;
+  border-radius: 2px;
+  cursor: help;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.highlight:hover {
+  background-color: #a1e0a1;
+}
+
+/* Term Lookup Modal */
+.term-modal {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 350px;
+  background: var(--white);
+  border: 2px solid var(--black);
+  padding: 1.5rem;
+  z-index: 1000;
+  box-shadow: 10px 10px 0px var(--black);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--black);
+  padding-bottom: 0.5rem;
+}
+
+.modal-title {
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+}
+
+.close-modal {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.modal-body {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .answer-content sup a {
   text-decoration: none;
   color: var(--accent);
