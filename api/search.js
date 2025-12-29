@@ -8,56 +8,30 @@ const CONFIG = {
     'https://priv.au',
     'https://searx.tiekoetter.com',
     'https://searx.space'
-  ]
+  ],
+  maxSources: 10
 };
 
-// --- Data Source Helpers ---
-
-async function searchGitHub(query) {
+async function searchWikipedia(query) {
   try {
-    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&per_page=5`;
-    const response = await fetch(url, { headers: { 'Accept': 'application/vnd.github.v3+json' } });
-    const data = await response.json();
-    return (data.items || []).map(repo => ({
-      title: repo.full_name,
-      url: repo.html_url,
-      content: repo.description || 'No description.',
-      source: 'GitHub',
-      stars: repo.stargazers_count
-    }));
-  } catch (err) { return []; }
-}
-
-async function searchBooks(query) {
-  try {
-    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=3`;
+    const url = `https://en.wikipedia.org/w/api.php?` + new URLSearchParams({
+      action: 'query',
+      list: 'search',
+      srsearch: query,
+      format: 'json',
+      origin: '*'
+    });
     const response = await fetch(url);
     const data = await response.json();
-    return (data.docs || []).map(book => ({
-      title: `Book: ${book.title}`,
-      url: `https://openlibrary.org${book.key}`,
-      content: `Author: ${book.author_name ? book.author_name.join(', ') : 'Unknown'}. Published: ${book.first_publish_year || 'N/A'}.`,
-      source: 'Open Library'
+    if (!data.query?.search?.length) return [];
+    return data.query.search.slice(0, 3).map(result => ({
+      title: `Wikipedia: ${result.title}`,
+      url: `https://en.wikipedia.org/wiki/${encodeURIComponent(result.title)}`,
+      content: result.snippet.replace(/<\/?[^>]+(>|$)/g, ""),
+      source: 'Wikipedia'
     }));
   } catch (err) { return []; }
 }
-
-async function searchNews(query) {
-  // Using HN search as a reliable free news source
-  try {
-    const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&hitsPerPage=3`;
-    const response = await fetch(url);
-    const data = await response.json();
-    return (data.hits || []).map(hit => ({
-      title: hit.title,
-      url: hit.url || `https://news.ycombinator.com/item?id=${hit.objectID}`,
-      content: `News from HackerNews. Points: ${hit.points}.`,
-      source: 'HackerNews'
-    }));
-  } catch (err) { return []; }
-}
-
-// --- Main API Handler ---
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -74,13 +48,8 @@ module.exports = async (req, res) => {
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
     if (!GROQ_API_KEY) return res.status(500).json({ error: 'API key not configured' });
 
-    // Step 1: Gather Multi-modal Data
-    const [githubRaw, books, news] = await Promise.all([
-      searchGitHub(query),
-      searchBooks(query),
-      searchNews(query)
-    ]);
-
+    // Step 1: High-Quality Sources (Wikipedia + DDG/Ecosia via SearxNG)
+    const wikiResults = await searchWikipedia(query);
     let webResults = [];
     let images = [];
     let videos = [];
@@ -91,7 +60,7 @@ module.exports = async (req, res) => {
         const searchUrl = `${instance}/search?` + new URLSearchParams({
           q: query,
           format: 'json',
-          engines: 'google,bing,duckduckgo,ecosia,youtube,google images'
+          engines: 'duckduckgo,ecosia,youtube,google images'
         });
 
         const response = await fetch(searchUrl, { 
@@ -101,58 +70,66 @@ module.exports = async (req, res) => {
         
         if (response.ok) {
           const data = await response.json();
-          webResults = (data.results || []).filter(r => !r.img_src && !r.template?.includes('video')).slice(0, 10);
-          images = (data.results || []).filter(r => r.img_src).slice(0, 8).map(img => ({
+          webResults = (data.results || []).filter(r => !r.img_src && !r.template?.includes('video')).slice(0, 8);
+          images = (data.results || []).filter(r => r.img_src).slice(0, 10).map(img => ({
             url: img.url,
             img_src: img.img_src,
             title: img.title
           }));
-          videos = (data.results || []).filter(r => r.template?.includes('video') || r.url.includes('youtube.com')).slice(0, 4);
+          videos = (data.results || []).filter(r => r.template?.includes('video') || r.url.includes('youtube.com') || r.url.includes('vimeo.com')).slice(0, 6);
           break; 
         }
       } catch (err) {}
     }
 
-    // Step 2: AI Filters GitHub for Relevance
-    const githubPrompt = `Query: "${query}"\n\nGitHub Repos:\n${githubRaw.map((r, i) => `[${i}] ${r.title}: ${r.content}`).join('\n')}\n\nIdentify which indices are TRULY relevant to the query. Return ONLY a JSON array of indices, e.g., [0, 2]. If none are relevant, return [].`;
-    
-    const githubFilterResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
-        messages: [{ role: 'user', content: githubPrompt }],
-        response_format: { type: 'json_object' }
-      })
-    });
-    
-    let relevantGithub = [];
-    try {
-      const filterData = await githubFilterResponse.json();
-      const indices = JSON.parse(filterData.choices[0].message.content).indices || [];
-      relevantGithub = indices.map(i => githubRaw[i]).filter(Boolean);
-    } catch (e) { relevantGithub = githubRaw.slice(0, 2); }
-
-    // Step 3: Final Research Prompt
     const allSources = [
-      ...webResults.map(r => ({ ...r, source: r.engine || 'Web' })),
-      ...relevantGithub,
-      ...books,
-      ...news
+      ...wikiResults,
+      ...webResults.map(r => ({
+        title: r.title,
+        url: r.url,
+        content: r.content,
+        source: r.engine || 'Web'
+      }))
     ].map((s, i) => ({ ...s, id: i + 1 }));
 
+    if (allSources.length === 0) {
+      return res.status(503).json({ error: 'No high-quality information found. Please try again.' });
+    }
+
+    // Step 2: Deep AI Analysis Prompt
     const sourceText = allSources.map(s => `[${s.id}] ${s.title} (Source: ${s.source})\n${s.content}\n---`).join('\n\n');
     
-    const researchPrompt = `Research Query: "${query}"\n\nSources:\n${sourceText}\n\nInstructions:\n1. Start with a "GENERAL SUMMARY" (100 words).\n2. Follow with a "DEEP ANALYSIS" (400-500 words).\n3. Cite EVERY claim with [1], [2], etc.\n4. If a source is from Ecosia, explicitly mention "According to Ecosia results..."\n5. Wrap key technical terms in **Double Asterisks**.\n6. Language: English only.\n\nAnswer:`;
+    const researchPrompt = `Research Query: "${query}"
+
+Sources:
+${sourceText}
+
+Instructions:
+1. Write a high-quality, professional research report in the style of a major newspaper (like The New York Times).
+2. Start with a "EXECUTIVE SUMMARY" (150 words) that provides a sophisticated overview.
+3. Follow with a "DETAILED INVESTIGATION" (500-700 words) with deep analysis and multiple sections.
+4. Cite EVERY claim with [1], [2], etc.
+5. Explicitly mention Ecosia or Wikipedia when referencing their specific data.
+6. Wrap key technical terms or important entities in **Double Asterisks**.
+7. Maintain a formal, objective, and authoritative tone.
+8. Language: English only.
+
+Answer:`;
 
     const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'system', content: 'Expert research assistant. Cite sources. Reference Ecosia when applicable.' }, { role: 'user', content: researchPrompt }],
-        max_tokens: 3000,
-        temperature: 0.3
+        messages: [
+          { role: 'system', content: 'You are a senior investigative journalist. Provide a deep, well-cited research report based on the provided sources.' },
+          { role: 'user', content: researchPrompt }
+        ],
+        max_tokens: 3500,
+        temperature: 0.2
       })
     });
 

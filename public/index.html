@@ -3,79 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eco AI Search | Multi-Modal Research</title>
+  <title>The Eco AI Gazette | Deep Research</title>
   <link rel="stylesheet" href="style.css">
   <link rel="search" type="application/opensearchdescription+xml" title="Eco AI Search" href="/opensearch.xml">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="nav-container">
-      <a href="/" class="logo">🌱 Eco AI</a>
+  <header class="nyt-header">
+    <div class="header-top">
+      <div class="date" id="current-date">Monday, December 29, 2025</div>
+      <div class="edition">Global Edition</div>
     </div>
-  </nav>
+    <div class="brand-container">
+      <h1 class="gazette-title">The Eco AI Gazette</h1>
+    </div>
+    <nav class="nyt-nav">
+      <ul>
+        <li>Wikipedia</li>
+        <li>DuckDuckGo</li>
+        <li>Ecosia</li>
+        <li>Deep Research</li>
+      </ul>
+    </nav>
+  </header>
 
   <main class="container">
-    <section class="hero">
-      <h1 class="hero-title">Explore issues shaping the future of the internet</h1>
-      <div class="search-container">
-        <div class="search-input-wrapper">
-          <textarea id="query" placeholder="Ask anything for detailed research..." rows="1"></textarea>
-          <button id="search-btn" class="search-btn">Research</button>
-        </div>
+    <section class="search-bar-section">
+      <div class="search-input-wrapper">
+        <input type="text" id="query" placeholder="Enter your research query...">
+        <button id="search-btn">Search</button>
       </div>
     </section>
 
     <div id="loading" class="loading hidden">
       <div class="loading-content">
-        <div class="spinner"></div>
-        <p>Analyzing the web<span class="dots">...</span></p>
+        <p>Investigating the archives<span class="dots">...</span></p>
       </div>
     </div>
 
     <div id="results" class="results hidden">
-      <!-- Image Carousel -->
+      <!-- Image Carousel (Headline Images) -->
       <div id="image-carousel" class="carousel-container hidden">
         <div class="carousel-track" id="carousel-track"></div>
       </div>
 
-      <div class="content-grid">
-        <div class="main-column">
-          <div class="answer-section">
-            <div class="section-header">
-              <h2 class="section-title">The Research Report</h2>
-              <button id="copy-btn" class="icon-btn">Copy</button>
-            </div>
-            <div id="answer-content" class="answer-content"></div>
+      <div class="newspaper-grid">
+        <div class="main-article">
+          <div class="article-header">
+            <h2 id="article-headline" class="headline">Research Report</h2>
+            <div class="byline">By Eco AI Investigative Team</div>
           </div>
-
-          <!-- Video Section -->
-          <div id="video-section" class="video-section hidden">
-            <h3 class="section-title">Related Videos</h3>
-            <div id="video-grid" class="video-grid"></div>
-          </div>
+          <div id="answer-content" class="article-body"></div>
         </div>
 
-        <aside class="sources-sidebar">
-          <h3 class="sidebar-title">Sources (<span id="source-count">0</span>)</h3>
-          <div id="sources-list" class="sources-list"></div>
+        <aside class="sidebar">
+          <div class="sidebar-section">
+            <h3 class="sidebar-title">Cited Sources</h3>
+            <div id="sources-list" class="sources-list"></div>
+          </div>
+          
+          <div id="video-section" class="sidebar-section hidden">
+            <h3 class="sidebar-title">Related Media</h3>
+            <div id="video-grid" class="video-grid"></div>
+          </div>
         </aside>
       </div>
       
       <div class="actions">
-        <button id="new-search-btn" class="btn-outline">Start New Research</button>
+        <button id="new-search-btn" class="btn-nyt">New Investigation</button>
+        <button id="copy-btn" class="btn-nyt">Copy Report</button>
       </div>
     </div>
   </main>
 
-  <footer class="footer">
-    <div class="footer-container">
-      <div class="footer-brand">
-        <span class="logo">🌱 Eco AI</span>
-        <p>Multi-Modal Research • Detailed Answers • Full Citations</p>
-      </div>
-      <div class="footer-links">
-        <p>© 2025 Eco AI Search. Powered by Ecosia & Groq.</p>
-      </div>
+  <footer class="nyt-footer">
+    <div class="footer-content">
+      <p>© 2025 The Eco AI Gazette. All rights reserved. High-quality research powered by Wikipedia, Ecosia, and Groq.</p>
     </div>
   </footer>
 

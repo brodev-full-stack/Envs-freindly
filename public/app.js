@@ -1,6 +1,6 @@
 class SearchEngine {
   async search(query) {
-    updateStage('Analyzing multi-modal data');
+    updateStage('Consulting the archives');
     
     const response = await fetch('/api/search', {
       method: 'POST',
@@ -8,14 +8,9 @@ class SearchEngine {
       body: JSON.stringify({ query })
     });
 
-    const contentType = response.headers.get('content-type');
     if (!response.ok) {
-      if (contentType && contentType.includes('application/json')) {
-        const error = await response.json();
-        throw new Error(error.error || 'Research failed');
-      } else {
-        throw new Error('Server returned an unexpected response.');
-      }
+      const error = await response.json();
+      throw new Error(error.error || 'Investigation failed');
     }
 
     return await response.json();
@@ -38,41 +33,38 @@ class UI {
       carousel: document.getElementById('image-carousel'),
       carouselTrack: document.getElementById('carousel-track'),
       videoSection: document.getElementById('video-section'),
-      videoGrid: document.getElementById('video-grid')
+      videoGrid: document.getElementById('video-grid'),
+      headline: document.getElementById('article-headline'),
+      date: document.getElementById('current-date')
     };
 
+    this.initDate();
     this.bindEvents();
+  }
+
+  initDate() {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    this.elements.date.textContent = new Date().toLocaleDateString('en-US', options);
   }
 
   bindEvents() {
     this.elements.searchBtn.addEventListener('click', () => this.search());
     this.elements.query.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        this.search();
-      }
+      if (e.key === 'Enter') this.search();
     });
     this.elements.copyBtn.addEventListener('click', () => this.copy());
     this.elements.newSearchBtn.addEventListener('click', () => this.reset());
-    
-    this.elements.query.addEventListener('input', function() {
-      this.style.height = 'auto';
-      this.style.height = (this.scrollHeight) + 'px';
-    });
   }
 
   async search() {
     const query = this.elements.query.value.trim();
-    if (!query || query.length < 3) {
-      alert('Please enter a valid research query');
-      return;
-    }
+    if (!query || query.length < 3) return;
 
     this.showLoading();
 
     try {
       const result = await this.engine.search(query);
-      this.displayResults(result);
+      this.displayResults(result, query);
     } catch (error) {
       this.showError(error.message);
     }
@@ -81,14 +73,16 @@ class UI {
   showLoading() {
     this.elements.loading.classList.remove('hidden');
     this.elements.results.classList.add('hidden');
-    this.elements.loading.scrollIntoView({ behavior: 'smooth' });
   }
 
-  displayResults(result) {
+  displayResults(result, query) {
     this.elements.loading.classList.add('hidden');
     this.elements.results.classList.remove('hidden');
 
-    // 1. Display Images
+    // Headline
+    this.elements.headline.textContent = query.charAt(0).toUpperCase() + query.slice(1);
+
+    // Images
     if (result.images && result.images.length > 0) {
       this.elements.carousel.classList.remove('hidden');
       this.elements.carouselTrack.innerHTML = result.images.map(img => `
@@ -100,13 +94,13 @@ class UI {
       this.elements.carousel.classList.add('hidden');
     }
 
-    // 2. Format Answer
+    // Article Body
     const formatted = result.answer
       .split('\n\n')
       .map(p => {
         let content = p.replace(/\[(\d+)\]/g, (match, num) => {
           const source = result.sources.find(s => s.id === parseInt(num));
-          return source ? `<sup><a href="${source.url}" target="_blank" title="${this.escape(source.title)}">[${num}]</a></sup>` : match;
+          return source ? `<sup><a href="${source.url}" target="_blank">[${num}]</a></sup>` : match;
         });
         content = content.replace(/\*\*(.*?)\*\*/g, '<span class="highlight">$1</span>');
         return `<p>${content}</p>`;
@@ -114,12 +108,12 @@ class UI {
       .join('');
     this.elements.answerContent.innerHTML = formatted;
 
-    // 3. Display Videos
+    // Videos
     if (result.videos && result.videos.length > 0) {
       this.elements.videoSection.classList.remove('hidden');
       this.elements.videoGrid.innerHTML = result.videos.map(v => `
         <div class="video-card" onclick="window.open('${v.url}', '_blank')">
-          <div class="video-thumbnail">VIDEO</div>
+          <div class="video-thumbnail">MEDIA</div>
           <div class="video-title">${this.escape(v.title)}</div>
         </div>
       `).join('');
@@ -127,40 +121,36 @@ class UI {
       this.elements.videoSection.classList.add('hidden');
     }
 
-    // 4. Display Sources
+    // Sources
     this.elements.sourceCount.textContent = result.sources.length;
     this.elements.sourcesList.innerHTML = result.sources.map(s => `
       <div class="source-card" onclick="window.open('${s.url}', '_blank')">
         <span class="source-number">Source ${s.id} • ${s.source}</span>
         <div class="source-title">${this.escape(s.title)}</div>
-        <div class="source-snippet">${this.escape(s.content.substring(0, 150))}...</div>
+        <div class="source-snippet">${this.escape(s.content.substring(0, 120))}...</div>
       </div>
     `).join('');
 
-    this.elements.results.scrollIntoView({ behavior: 'smooth' });
+    window.scrollTo({ top: this.elements.results.offsetTop - 50, behavior: 'smooth' });
   }
 
   showError(message) {
     this.elements.loading.classList.add('hidden');
     this.elements.results.classList.remove('hidden');
-    this.elements.answerContent.innerHTML = `<p style="color: #ff3b30;">⚠️ ${this.escape(message)}</p>`;
-    this.elements.sourcesList.innerHTML = '';
-    this.elements.carousel.classList.add('hidden');
-    this.elements.videoSection.classList.add('hidden');
+    this.elements.answerContent.innerHTML = `<p style="color: #aa0000;">⚠️ ${this.escape(message)}</p>`;
   }
 
   copy() {
     const text = this.elements.answerContent.innerText;
     navigator.clipboard.writeText(text).then(() => {
       const originalText = this.elements.copyBtn.textContent;
-      this.elements.copyBtn.textContent = 'Copied!';
+      this.elements.copyBtn.textContent = 'Copied';
       setTimeout(() => this.elements.copyBtn.textContent = originalText, 2000);
     });
   }
 
   reset() {
     this.elements.query.value = '';
-    this.elements.query.style.height = 'auto';
     this.elements.results.classList.add('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     this.elements.query.focus();
@@ -182,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const engine = new SearchEngine();
   const ui = new UI(engine);
 
-  // Handle URL query parameters for browser search integration
   const urlParams = new URLSearchParams(window.location.search);
   const query = urlParams.get('q');
   if (query) {
