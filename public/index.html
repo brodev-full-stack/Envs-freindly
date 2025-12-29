@@ -3,82 +3,77 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Eco AI Gazette | Deep Research</title>
+  <title>Eco AI Gazette | Modern Research</title>
   <link rel="stylesheet" href="style.css">
   <link rel="search" type="application/opensearchdescription+xml" title="Eco AI Search" href="/opensearch.xml">
 </head>
 <body>
-  <header class="nyt-header">
-    <div class="header-top">
-      <div class="date" id="current-date">Monday, December 29, 2025</div>
-      <div class="edition">Global Edition</div>
+  <div class="gradient-bg"></div>
+  
+  <header class="main-header">
+    <div class="header-content">
+      <div class="header-meta">
+        <span id="current-date"></span>
+        <span class="edition">Mozilla x Gazette Edition</span>
+      </div>
+      <h1 class="site-title">The Eco AI Gazette</h1>
+      <nav class="sub-nav">
+        <span>Wikipedia</span>
+        <span>DuckDuckGo</span>
+        <span>Ecosia</span>
+      </nav>
     </div>
-    <div class="brand-container">
-      <h1 class="gazette-title">The Eco AI Gazette</h1>
-    </div>
-    <nav class="nyt-nav">
-      <ul>
-        <li>Wikipedia</li>
-        <li>DuckDuckGo</li>
-        <li>Ecosia</li>
-        <li>Deep Research</li>
-      </ul>
-    </nav>
   </header>
 
   <main class="container">
-    <section class="search-bar-section">
-      <div class="search-input-wrapper">
-        <input type="text" id="query" placeholder="Enter your research query...">
-        <button id="search-btn">Search</button>
+    <section class="search-section">
+      <div class="search-box">
+        <input type="text" id="query" placeholder="Search the archives...">
+        <button id="search-btn">Research</button>
       </div>
     </section>
 
     <div id="loading" class="loading hidden">
-      <div class="loading-content">
-        <p>Investigating the archives<span class="dots">...</span></p>
-      </div>
+      <div class="spinner"></div>
+      <p>Investigating<span class="dots">...</span></p>
     </div>
 
     <div id="results" class="results hidden">
-      <!-- Image Carousel (Headline Images) -->
-      <div id="image-carousel" class="carousel-container hidden">
+      <div id="image-carousel" class="carousel hidden">
         <div class="carousel-track" id="carousel-track"></div>
       </div>
 
-      <div class="newspaper-grid">
-        <div class="main-article">
-          <div class="article-header">
-            <h2 id="article-headline" class="headline">Research Report</h2>
+      <div class="newspaper-layout">
+        <article class="main-story">
+          <header class="story-header">
+            <h2 id="article-headline" class="headline"></h2>
             <div class="byline">By Eco AI Investigative Team</div>
-          </div>
-          <div id="answer-content" class="article-body"></div>
-        </div>
+          </header>
+          <div id="answer-content" class="story-body"></div>
+        </article>
 
         <aside class="sidebar">
-          <div class="sidebar-section">
-            <h3 class="sidebar-title">Cited Sources</h3>
+          <section class="sidebar-block">
+            <h3 class="sidebar-label">Sources (<span id="source-count">0</span>)</h3>
             <div id="sources-list" class="sources-list"></div>
-          </div>
+          </section>
           
-          <div id="video-section" class="sidebar-section hidden">
-            <h3 class="sidebar-title">Related Media</h3>
+          <section id="video-section" class="sidebar-block hidden">
+            <h3 class="sidebar-label">Related Media</h3>
             <div id="video-grid" class="video-grid"></div>
-          </div>
+          </section>
         </aside>
       </div>
-      
+
       <div class="actions">
-        <button id="new-search-btn" class="btn-nyt">New Investigation</button>
-        <button id="copy-btn" class="btn-nyt">Copy Report</button>
+        <button id="copy-btn" class="btn-action">Copy Report</button>
+        <button id="new-search-btn" class="btn-action">New Search</button>
       </div>
     </div>
   </main>
 
-  <footer class="nyt-footer">
-    <div class="footer-content">
-      <p>© 2025 The Eco AI Gazette. All rights reserved. High-quality research powered by Wikipedia, Ecosia, and Groq.</p>
-    </div>
+  <footer class="main-footer">
+    <p>© 2025 The Eco AI Gazette. Blending tradition with modern intelligence.</p>
   </footer>
 
   <script src="app.js"></script>
