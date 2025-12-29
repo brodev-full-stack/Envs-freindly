@@ -18,6 +18,13 @@ body {
   color: var(--moz-black);
   line-height: 1.6;
   overflow-x: hidden;
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Prevent FOUC */
+html:not(.wf-active) body {
+  /* You can add a slight delay or hidden state here if using web fonts */
 }
 
 .gradient-bg {

@@ -60,6 +60,11 @@ class UI {
     const query = this.elements.query.value.trim();
     if (!query || query.length < 3) return;
 
+    // Resume AudioContext on user gesture if needed
+    if (window.audioCtx && window.audioCtx.state === 'suspended') {
+      window.audioCtx.resume();
+    }
+
     this.showLoading();
 
     try {
@@ -168,10 +173,11 @@ function updateStage(stage) {
   if (el) el.innerHTML = `${stage}<span class="dots">...</span>`;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('load', () => {
   const engine = new SearchEngine();
   const ui = new UI(engine);
 
+  // Handle URL query parameters for browser search integration
   const urlParams = new URLSearchParams(window.location.search);
   const query = urlParams.get('q');
   if (query) {
