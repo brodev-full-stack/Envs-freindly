@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eco AI Search | Future of Research</title>
+  <title>Eco AI Search | Multi-Modal Research</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -18,11 +18,7 @@
       <h1 class="hero-title">Explore issues shaping the future of the internet</h1>
       <div class="search-container">
         <div class="search-input-wrapper">
-          <textarea 
-            id="query" 
-            placeholder="Ask anything for detailed research..."
-            rows="1"
-          ></textarea>
+          <textarea id="query" placeholder="Ask anything for detailed research..." rows="1"></textarea>
           <button id="search-btn" class="search-btn">Research</button>
         </div>
       </div>
@@ -36,13 +32,26 @@
     </div>
 
     <div id="results" class="results hidden">
+      <!-- Image Carousel -->
+      <div id="image-carousel" class="carousel-container hidden">
+        <div class="carousel-track" id="carousel-track"></div>
+      </div>
+
       <div class="content-grid">
-        <div class="answer-section">
-          <div class="section-header">
-            <h2 class="section-title">The Research Report</h2>
-            <button id="copy-btn" class="icon-btn" title="Copy Report">Copy</button>
+        <div class="main-column">
+          <div class="answer-section">
+            <div class="section-header">
+              <h2 class="section-title">The Research Report</h2>
+              <button id="copy-btn" class="icon-btn">Copy</button>
+            </div>
+            <div id="answer-content" class="answer-content"></div>
           </div>
-          <div id="answer-content" class="answer-content"></div>
+
+          <!-- Video Section -->
+          <div id="video-section" class="video-section hidden">
+            <h3 class="section-title">Related Videos</h3>
+            <div id="video-grid" class="video-grid"></div>
+          </div>
         </div>
 
         <aside class="sources-sidebar">
@@ -61,10 +70,10 @@
     <div class="footer-container">
       <div class="footer-brand">
         <span class="logo">🌱 Eco AI</span>
-        <p>Deep Research • Detailed Answers • Full Citations</p>
+        <p>Multi-Modal Research • Detailed Answers • Full Citations</p>
       </div>
       <div class="footer-links">
-        <p>© 2025 Eco AI Search. All rights reserved.</p>
+        <p>© 2025 Eco AI Search. Powered by Ecosia & Groq.</p>
       </div>
     </div>
   </footer>

@@ -7,53 +7,57 @@ const CONFIG = {
     'https://searx.work',
     'https://priv.au',
     'https://searx.tiekoetter.com',
-    'https://searx.space',
-    'https://search.disroot.org'
-  ],
-  maxSources: 8
+    'https://searx.space'
+  ]
 };
+
+// --- Data Source Helpers ---
 
 async function searchGitHub(query) {
   try {
-    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&per_page=3`;
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/vnd.github.v3+json' }
-    });
+    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&per_page=5`;
+    const response = await fetch(url, { headers: { 'Accept': 'application/vnd.github.v3+json' } });
     const data = await response.json();
     return (data.items || []).map(repo => ({
-      title: `GitHub: ${repo.full_name}`,
+      title: repo.full_name,
       url: repo.html_url,
-      content: repo.description || 'No description available.',
-      source: 'GitHub'
+      content: repo.description || 'No description.',
+      source: 'GitHub',
+      stars: repo.stargazers_count
     }));
-  } catch (err) {
-    console.error('GitHub search failed:', err);
-    return [];
-  }
+  } catch (err) { return []; }
 }
 
-async function searchWikipedia(query) {
+async function searchBooks(query) {
   try {
-    const url = `https://en.wikipedia.org/w/api.php?` + new URLSearchParams({
-      action: 'query',
-      list: 'search',
-      srsearch: query,
-      format: 'json',
-      origin: '*'
-    });
+    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=3`;
     const response = await fetch(url);
     const data = await response.json();
-    if (!data.query?.search?.length) return [];
-    return data.query.search.slice(0, 2).map(result => ({
-      title: `Wikipedia: ${result.title}`,
-      url: `https://en.wikipedia.org/wiki/${encodeURIComponent(result.title)}`,
-      content: result.snippet.replace(/<\/?[^>]+(>|$)/g, ""),
-      source: 'Wikipedia'
+    return (data.docs || []).map(book => ({
+      title: `Book: ${book.title}`,
+      url: `https://openlibrary.org${book.key}`,
+      content: `Author: ${book.author_name ? book.author_name.join(', ') : 'Unknown'}. Published: ${book.first_publish_year || 'N/A'}.`,
+      source: 'Open Library'
     }));
-  } catch (err) {
-    return [];
-  }
+  } catch (err) { return []; }
 }
+
+async function searchNews(query) {
+  // Using HN search as a reliable free news source
+  try {
+    const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&hitsPerPage=3`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return (data.hits || []).map(hit => ({
+      title: hit.title,
+      url: hit.url || `https://news.ycombinator.com/item?id=${hit.objectID}`,
+      content: `News from HackerNews. Points: ${hit.points}.`,
+      source: 'HackerNews'
+    }));
+  } catch (err) { return []; }
+}
+
+// --- Main API Handler ---
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -70,98 +74,95 @@ module.exports = async (req, res) => {
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
     if (!GROQ_API_KEY) return res.status(500).json({ error: 'API key not configured' });
 
-    let sources = [];
-    
-    // Step 1: Parallel search for GitHub and Wikipedia
-    const [githubResults, wikiResults] = await Promise.all([
+    // Step 1: Gather Multi-modal Data
+    const [githubRaw, books, news] = await Promise.all([
       searchGitHub(query),
-      searchWikipedia(query)
+      searchBooks(query),
+      searchNews(query)
     ]);
-    sources = [...githubResults, ...wikiResults];
 
-    // Step 2: Try SearxNG (which includes Ecosia results via its engines)
+    let webResults = [];
+    let images = [];
+    let videos = [];
+
     const shuffledInstances = CONFIG.searxngInstances.sort(() => Math.random() - 0.5);
     for (const instance of shuffledInstances) {
       try {
         const searchUrl = `${instance}/search?` + new URLSearchParams({
           q: query,
           format: 'json',
-          engines: 'google,bing,duckduckgo,ecosia' // Added Ecosia
+          engines: 'google,bing,duckduckgo,ecosia,youtube,google images'
         });
 
-        const searchResponse = await fetch(searchUrl, { 
-          timeout: 5000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          }
+        const response = await fetch(searchUrl, { 
+          timeout: 8000,
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
         });
         
-        if (searchResponse.ok) {
-          const data = await searchResponse.json();
-          if (data?.results?.length > 0) {
-            const webSources = data.results
-              .filter(r => r.content && r.content.length > 50)
-              .slice(0, 4)
-              .map(r => ({
-                title: r.title,
-                url: r.url,
-                content: r.content,
-                source: r.engine || 'Web'
-              }));
-            sources = [...sources, ...webSources];
-            break; 
-          }
+        if (response.ok) {
+          const data = await response.json();
+          webResults = (data.results || []).filter(r => !r.img_src && !r.template?.includes('video')).slice(0, 10);
+          images = (data.results || []).filter(r => r.img_src).slice(0, 8).map(img => ({
+            url: img.url,
+            img_src: img.img_src,
+            title: img.title
+          }));
+          videos = (data.results || []).filter(r => r.template?.includes('video') || r.url.includes('youtube.com')).slice(0, 4);
+          break; 
         }
-      } catch (err) {
-        console.warn(`SearxNG instance failed: ${instance}`);
-      }
+      } catch (err) {}
     }
 
-    if (sources.length === 0) {
-      return res.status(503).json({ error: 'No information found. Please try a different query.' });
-    }
-
-    // Step 3: Structured Prompt for Summary + Deep Dive
-    const sourceText = sources.map((s, i) => `[${i + 1}] ${s.title} (${s.source})\n${s.content}\n---`).join('\n\n');
+    // Step 2: AI Filters GitHub for Relevance
+    const githubPrompt = `Query: "${query}"\n\nGitHub Repos:\n${githubRaw.map((r, i) => `[${i}] ${r.title}: ${r.content}`).join('\n')}\n\nIdentify which indices are TRULY relevant to the query. Return ONLY a JSON array of indices, e.g., [0, 2]. If none are relevant, return [].`;
     
-    const prompt = `Research Query: "${query}"
+    const githubFilterResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [{ role: 'user', content: githubPrompt }],
+        response_format: { type: 'json_object' }
+      })
+    });
+    
+    let relevantGithub = [];
+    try {
+      const filterData = await githubFilterResponse.json();
+      const indices = JSON.parse(filterData.choices[0].message.content).indices || [];
+      relevantGithub = indices.map(i => githubRaw[i]).filter(Boolean);
+    } catch (e) { relevantGithub = githubRaw.slice(0, 2); }
 
-Sources:
-${sourceText}
+    // Step 3: Final Research Prompt
+    const allSources = [
+      ...webResults.map(r => ({ ...r, source: r.engine || 'Web' })),
+      ...relevantGithub,
+      ...books,
+      ...news
+    ].map((s, i) => ({ ...s, id: i + 1 }));
 
-Instructions:
-1. Start with a "GENERAL SUMMARY" (approx 100 words) that gives a quick overview.
-2. Follow with a "DEEP ANALYSIS" (400-500 words) that provides a detailed breakdown.
-3. Use multiple paragraphs and cite EVERY claim with [1], [2], etc.
-4. Identify 5-8 key technical terms or important concepts and wrap them in double asterisks like **Term** so they can be highlighted.
-5. Only use information from the provided sources.
-6. Language: English only.
-
-Answer:`;
+    const sourceText = allSources.map(s => `[${s.id}] ${s.title} (Source: ${s.source})\n${s.content}\n---`).join('\n\n');
+    
+    const researchPrompt = `Research Query: "${query}"\n\nSources:\n${sourceText}\n\nInstructions:\n1. Start with a "GENERAL SUMMARY" (100 words).\n2. Follow with a "DEEP ANALYSIS" (400-500 words).\n3. Cite EVERY claim with [1], [2], etc.\n4. If a source is from Ecosia, explicitly mention "According to Ecosia results..."\n5. Wrap key technical terms in **Double Asterisks**.\n6. Language: English only.\n\nAnswer:`;
 
     const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: 'You are an expert research assistant. Provide a structured summary followed by a deep analysis. Wrap key terms in double asterisks.' },
-          { role: 'user', content: prompt }
-        ],
+        messages: [{ role: 'system', content: 'Expert research assistant. Cite sources. Reference Ecosia when applicable.' }, { role: 'user', content: researchPrompt }],
         max_tokens: 3000,
         temperature: 0.3
       })
     });
 
-    if (!groqResponse.ok) throw new Error('AI processing failed');
-
     const groqData = await groqResponse.json();
+    
     return res.status(200).json({ 
       answer: groqData.choices[0].message.content,
-      sources: sources.map((s, i) => ({ ...s, id: i + 1 }))
+      sources: allSources,
+      images,
+      videos
     });
 
   } catch (error) {

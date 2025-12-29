@@ -1,6 +1,6 @@
 class SearchEngine {
   async search(query) {
-    updateStage('Analyzing the web');
+    updateStage('Analyzing multi-modal data');
     
     const response = await fetch('/api/search', {
       method: 'POST',
@@ -14,14 +14,8 @@ class SearchEngine {
         const error = await response.json();
         throw new Error(error.error || 'Research failed');
       } else {
-        const text = await response.text();
-        console.error('Non-JSON error response:', text);
-        throw new Error('Server returned an unexpected response. Please try again.');
+        throw new Error('Server returned an unexpected response.');
       }
-    }
-
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('Server did not return JSON. Please try again.');
     }
 
     return await response.json();
@@ -40,7 +34,11 @@ class UI {
       sourcesList: document.getElementById('sources-list'),
       sourceCount: document.getElementById('source-count'),
       copyBtn: document.getElementById('copy-btn'),
-      newSearchBtn: document.getElementById('new-search-btn')
+      newSearchBtn: document.getElementById('new-search-btn'),
+      carousel: document.getElementById('image-carousel'),
+      carouselTrack: document.getElementById('carousel-track'),
+      videoSection: document.getElementById('video-section'),
+      videoGrid: document.getElementById('video-grid')
     };
 
     this.bindEvents();
@@ -57,7 +55,6 @@ class UI {
     this.elements.copyBtn.addEventListener('click', () => this.copy());
     this.elements.newSearchBtn.addEventListener('click', () => this.reset());
     
-    // Auto-resize textarea
     this.elements.query.addEventListener('input', function() {
       this.style.height = 'auto';
       this.style.height = (this.scrollHeight) + 'px';
@@ -91,37 +88,52 @@ class UI {
     this.elements.loading.classList.add('hidden');
     this.elements.results.classList.remove('hidden');
 
-    // Format answer with citations and highlights
+    // 1. Display Images
+    if (result.images && result.images.length > 0) {
+      this.elements.carousel.classList.remove('hidden');
+      this.elements.carouselTrack.innerHTML = result.images.map(img => `
+        <div class="carousel-item" onclick="window.open('${img.url}', '_blank')">
+          <img src="${img.img_src}" alt="${this.escape(img.title)}" onerror="this.parentElement.style.display='none'">
+        </div>
+      `).join('');
+    } else {
+      this.elements.carousel.classList.add('hidden');
+    }
+
+    // 2. Format Answer
     const formatted = result.answer
       .split('\n\n')
       .map(p => {
-        // Handle Citations
         let content = p.replace(/\[(\d+)\]/g, (match, num) => {
           const source = result.sources.find(s => s.id === parseInt(num));
-          if (source) {
-            return `<sup><a href="${source.url}" target="_blank" title="${this.escape(source.title)}">[${num}]</a></sup>`;
-          }
-          return match;
+          return source ? `<sup><a href="${source.url}" target="_blank" title="${this.escape(source.title)}">[${num}]</a></sup>` : match;
         });
-
-        // Handle Highlights (wrap **Term** in span)
-        content = content.replace(/\*\*(.*?)\*\*/g, (match, term) => {
-          return `<span class="highlight" onclick="window.ui.lookupTerm('${this.escape(term)}')">${term}</span>`;
-        });
-
+        content = content.replace(/\*\*(.*?)\*\*/g, '<span class="highlight">$1</span>');
         return `<p>${content}</p>`;
       })
       .join('');
-
     this.elements.answerContent.innerHTML = formatted;
 
-    // Display sources
+    // 3. Display Videos
+    if (result.videos && result.videos.length > 0) {
+      this.elements.videoSection.classList.remove('hidden');
+      this.elements.videoGrid.innerHTML = result.videos.map(v => `
+        <div class="video-card" onclick="window.open('${v.url}', '_blank')">
+          <div class="video-thumbnail">VIDEO</div>
+          <div class="video-title">${this.escape(v.title)}</div>
+        </div>
+      `).join('');
+    } else {
+      this.elements.videoSection.classList.add('hidden');
+    }
+
+    // 4. Display Sources
     this.elements.sourceCount.textContent = result.sources.length;
     this.elements.sourcesList.innerHTML = result.sources.map(s => `
       <div class="source-card" onclick="window.open('${s.url}', '_blank')">
-        <span class="source-number">Source ${s.id}</span>
+        <span class="source-number">Source ${s.id} • ${s.source}</span>
         <div class="source-title">${this.escape(s.title)}</div>
-        <div class="source-snippet">${this.escape(s.snippet)}</div>
+        <div class="source-snippet">${this.escape(s.content.substring(0, 150))}...</div>
       </div>
     `).join('');
 
@@ -133,6 +145,8 @@ class UI {
     this.elements.results.classList.remove('hidden');
     this.elements.answerContent.innerHTML = `<p style="color: #ff3b30;">⚠️ ${this.escape(message)}</p>`;
     this.elements.sourcesList.innerHTML = '';
+    this.elements.carousel.classList.add('hidden');
+    this.elements.videoSection.classList.add('hidden');
   }
 
   copy() {
@@ -140,9 +154,7 @@ class UI {
     navigator.clipboard.writeText(text).then(() => {
       const originalText = this.elements.copyBtn.textContent;
       this.elements.copyBtn.textContent = 'Copied!';
-      setTimeout(() => {
-        this.elements.copyBtn.textContent = originalText;
-      }, 2000);
+      setTimeout(() => this.elements.copyBtn.textContent = originalText, 2000);
     });
   }
 
@@ -159,38 +171,6 @@ class UI {
     div.textContent = text;
     return div.innerHTML;
   }
-
-  async lookupTerm(term) {
-    // Remove existing modal if any
-    const existing = document.querySelector('.term-modal');
-    if (existing) existing.remove();
-
-    // Create modal
-    const modal = document.createElement('div');
-    modal.className = 'term-modal';
-    modal.innerHTML = `
-      <div class="modal-header">
-        <span class="modal-title">Term Lookup: ${term}</span>
-        <span class="close-modal" onclick="this.parentElement.parentElement.remove()">✕</span>
-      </div>
-      <div class="modal-body">
-        <p id="modal-text">Researching term...</p>
-      </div>
-    `;
-    document.body.appendChild(modal);
-
-    try {
-      const response = await fetch('/api/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: `Define and explain the term "${term}" in the context of research.` })
-      });
-      const data = await response.json();
-      document.getElementById('modal-text').textContent = data.answer.split('\n')[0]; // Show first paragraph
-    } catch (err) {
-      document.getElementById('modal-text').textContent = 'Could not lookup term.';
-    }
-  }
 }
 
 function updateStage(stage) {
@@ -198,8 +178,7 @@ function updateStage(stage) {
   if (el) el.innerHTML = `${stage}<span class="dots">...</span>`;
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
   const engine = new SearchEngine();
-  window.ui = new UI(engine);
+  new UI(engine);
 });

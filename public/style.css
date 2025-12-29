@@ -145,50 +145,71 @@ body {
   background-color: #c1f0c1; /* Pastel Green */
   padding: 0 2px;
   border-radius: 2px;
-  cursor: help;
   font-weight: 600;
-  transition: background-color 0.2s;
 }
 
-.highlight:hover {
-  background-color: #a1e0a1;
+/* Carousel */
+.carousel-container {
+  margin-bottom: 3rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  scrollbar-width: none;
 }
 
-/* Term Lookup Modal */
-.term-modal {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  width: 350px;
-  background: var(--white);
-  border: 2px solid var(--black);
-  padding: 1.5rem;
-  z-index: 1000;
-  box-shadow: 10px 10px 0px var(--black);
-}
+.carousel-container::-webkit-scrollbar { display: none; }
 
-.modal-header {
+.carousel-track {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--black);
-  padding-bottom: 0.5rem;
+  gap: 1rem;
 }
 
-.modal-title {
-  font-weight: 800;
-  text-transform: uppercase;
-  font-size: 0.875rem;
+.carousel-item {
+  flex: 0 0 300px;
+  height: 200px;
+  background: var(--gray-light);
+  border: 1px solid var(--border);
+  overflow: hidden;
 }
 
-.close-modal {
+.carousel-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Video Grid */
+.video-section {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.video-card {
   cursor: pointer;
-  font-weight: 800;
 }
 
-.modal-body {
-  font-size: 0.9rem;
+.video-thumbnail {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: var(--black);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-weight: 700;
+}
+
+.video-title {
+  font-size: 1rem;
+  font-weight: 600;
   line-height: 1.4;
 }
 
