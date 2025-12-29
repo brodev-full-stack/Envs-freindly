@@ -1,18 +1,15 @@
 class SearchEngine {
   async search(query) {
     updateStage('Consulting the archives');
-    
     const response = await fetch('/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query })
     });
-
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Investigation failed');
     }
-
     return await response.json();
   }
 }
@@ -20,6 +17,7 @@ class SearchEngine {
 class UI {
   constructor(engine) {
     this.engine = engine;
+    this.zoomLevel = 1;
     this.elements = {
       query: document.getElementById('query'),
       searchBtn: document.getElementById('search-btn'),
@@ -30,12 +28,15 @@ class UI {
       sourceCount: document.getElementById('source-count'),
       copyBtn: document.getElementById('copy-btn'),
       newSearchBtn: document.getElementById('new-search-btn'),
-      carousel: document.getElementById('image-carousel'),
-      carouselTrack: document.getElementById('carousel-track'),
+      gallery: document.getElementById('image-gallery'),
+      galleryGrid: document.getElementById('gallery-grid'),
       videoSection: document.getElementById('video-section'),
       videoGrid: document.getElementById('video-grid'),
       headline: document.getElementById('article-headline'),
-      date: document.getElementById('current-date')
+      date: document.getElementById('current-date'),
+      zoomIn: document.getElementById('zoom-in'),
+      zoomOut: document.getElementById('zoom-out'),
+      toggleContrast: document.getElementById('toggle-contrast')
     };
 
     this.initDate();
@@ -54,19 +55,22 @@ class UI {
     });
     this.elements.copyBtn.addEventListener('click', () => this.copy());
     this.elements.newSearchBtn.addEventListener('click', () => this.reset());
+    
+    // Accessibility
+    this.elements.zoomIn.addEventListener('click', () => this.zoom(0.1));
+    this.elements.zoomOut.addEventListener('click', () => this.zoom(-0.1));
+    this.elements.toggleContrast.addEventListener('click', () => document.body.classList.toggle('high-contrast'));
+  }
+
+  zoom(delta) {
+    this.zoomLevel += delta;
+    document.body.style.zoom = this.zoomLevel;
   }
 
   async search() {
     const query = this.elements.query.value.trim();
     if (!query || query.length < 3) return;
-
-    // Resume AudioContext on user gesture if needed
-    if (window.audioCtx && window.audioCtx.state === 'suspended') {
-      window.audioCtx.resume();
-    }
-
     this.showLoading();
-
     try {
       const result = await this.engine.search(query);
       this.displayResults(result, query);
@@ -83,27 +87,29 @@ class UI {
   displayResults(result, query) {
     this.elements.loading.classList.add('hidden');
     this.elements.results.classList.remove('hidden');
-
-    // Headline
     this.elements.headline.textContent = query.charAt(0).toUpperCase() + query.slice(1);
 
-    // Images
+    // Images Gallery
     if (result.images && result.images.length > 0) {
-      this.elements.carousel.classList.remove('hidden');
-      this.elements.carouselTrack.innerHTML = result.images.map(img => `
-        <div class="carousel-item" onclick="window.open('${img.url}', '_blank')">
+      this.elements.gallery.classList.remove('hidden');
+      this.elements.galleryGrid.innerHTML = result.images.map(img => `
+        <div class="gallery-item" onclick="window.open('${img.url}', '_blank')">
           <img src="${img.img_src}" alt="${this.escape(img.title)}" onerror="this.parentElement.style.display='none'">
         </div>
       `).join('');
     } else {
-      this.elements.carousel.classList.add('hidden');
+      this.elements.gallery.classList.add('hidden');
     }
 
-    // Article Body
+    // Article Body (Direct Markdown-like formatting)
     const formatted = result.answer
-      .split('\n\n')
-      .map(p => {
-        let content = p.replace(/\[(\d+)\]/g, (match, num) => {
+      .split('\n')
+      .filter(line => line.trim() !== '')
+      .map(line => {
+        if (line.startsWith('##')) {
+          return `<h3>${line.replace('##', '').trim()}</h3>`;
+        }
+        let content = line.replace(/\[(\d+)\]/g, (match, num) => {
           const source = result.sources.find(s => s.id === parseInt(num));
           return source ? `<sup><a href="${source.url}" target="_blank">[${num}]</a></sup>` : match;
         });
@@ -132,7 +138,7 @@ class UI {
       <div class="source-card" onclick="window.open('${s.url}', '_blank')">
         <span class="source-number">Source ${s.id} • ${s.source}</span>
         <div class="source-title">${this.escape(s.title)}</div>
-        <div class="source-snippet">${this.escape(s.content.substring(0, 120))}...</div>
+        <div class="source-snippet">${this.escape(s.content.substring(0, 100))}...</div>
       </div>
     `).join('');
 
@@ -176,8 +182,6 @@ function updateStage(stage) {
 window.addEventListener('load', () => {
   const engine = new SearchEngine();
   const ui = new UI(engine);
-
-  // Handle URL query parameters for browser search integration
   const urlParams = new URLSearchParams(window.location.search);
   const query = urlParams.get('q');
   if (query) {

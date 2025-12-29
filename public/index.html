@@ -3,18 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eco AI Gazette | Modern Research</title>
+  <title>Eco AI Gazette | Deep Research</title>
   <link rel="stylesheet" href="style.css">
   <link rel="search" type="application/opensearchdescription+xml" title="Eco AI Search" href="/opensearch.xml">
 </head>
 <body>
   <div class="gradient-bg"></div>
   
+  <!-- Accessibility Menu -->
+  <div class="accessibility-menu">
+    <button id="zoom-in" title="Zoom In">A+</button>
+    <button id="zoom-out" title="Zoom Out">A-</button>
+    <button id="toggle-contrast" title="High Contrast">◐</button>
+  </div>
+
   <header class="main-header">
     <div class="header-content">
       <div class="header-meta">
         <span id="current-date"></span>
-        <span class="edition">Mozilla x Gazette Edition</span>
+        <span class="edition">Investigative Research Edition</span>
       </div>
       <h1 class="site-title">The Eco AI Gazette</h1>
       <nav class="sub-nav">
@@ -28,19 +35,21 @@
   <main class="container">
     <section class="search-section">
       <div class="search-box">
-        <input type="text" id="query" placeholder="Search the archives...">
+        <input type="text" id="query" placeholder="Enter research topic...">
         <button id="search-btn">Research</button>
       </div>
     </section>
 
     <div id="loading" class="loading hidden">
       <div class="spinner"></div>
-      <p>Investigating<span class="dots">...</span></p>
+      <p>Consulting the archives<span class="dots">...</span></p>
     </div>
 
     <div id="results" class="results hidden">
-      <div id="image-carousel" class="carousel hidden">
-        <div class="carousel-track" id="carousel-track"></div>
+      <!-- Image Gallery -->
+      <div id="image-gallery" class="gallery-section hidden">
+        <h3 class="sidebar-label">Visual Evidence</h3>
+        <div class="gallery-grid" id="gallery-grid"></div>
       </div>
 
       <div class="newspaper-layout">
@@ -73,7 +82,7 @@
   </main>
 
   <footer class="main-footer">
-    <p>© 2025 The Eco AI Gazette. Blending tradition with modern intelligence.</p>
+    <p>© 2025 The Eco AI Gazette. Fast, Deep, and Objective Research.</p>
   </footer>
 
   <script src="app.js"></script>

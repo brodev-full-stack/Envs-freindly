@@ -8,8 +8,7 @@ const CONFIG = {
     'https://priv.au',
     'https://searx.tiekoetter.com',
     'https://searx.space'
-  ],
-  maxSources: 10
+  ]
 };
 
 async function searchWikipedia(query) {
@@ -21,7 +20,7 @@ async function searchWikipedia(query) {
       format: 'json',
       origin: '*'
     });
-    const response = await fetch(url);
+    const response = await fetch(url, { timeout: 5000 });
     const data = await response.json();
     if (!data.query?.search?.length) return [];
     return data.query.search.slice(0, 3).map(result => ({
@@ -48,8 +47,9 @@ module.exports = async (req, res) => {
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
     if (!GROQ_API_KEY) return res.status(500).json({ error: 'API key not configured' });
 
-    // Step 1: High-Quality Sources (Wikipedia + DDG/Ecosia via SearxNG)
-    const wikiResults = await searchWikipedia(query);
+    // Step 1: Fast Parallel Search (Wikipedia + DDG/Ecosia)
+    const wikiPromise = searchWikipedia(query);
+    
     let webResults = [];
     let images = [];
     let videos = [];
@@ -64,40 +64,38 @@ module.exports = async (req, res) => {
         });
 
         const response = await fetch(searchUrl, { 
-          timeout: 8000,
+          timeout: 6000,
           headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
         });
         
         if (response.ok) {
           const data = await response.json();
-          webResults = (data.results || []).filter(r => !r.img_src && !r.template?.includes('video')).slice(0, 8);
-          images = (data.results || []).filter(r => r.img_src).slice(0, 10).map(img => ({
+          webResults = (data.results || []).filter(r => !r.img_src && !r.template?.includes('video')).slice(0, 6);
+          images = (data.results || []).filter(r => r.img_src).slice(0, 12).map(img => ({
             url: img.url,
             img_src: img.img_src,
             title: img.title
           }));
-          videos = (data.results || []).filter(r => r.template?.includes('video') || r.url.includes('youtube.com') || r.url.includes('vimeo.com')).slice(0, 6);
+          videos = (data.results || []).filter(r => r.template?.includes('video') || r.url.includes('youtube.com')).slice(0, 4);
           break; 
         }
       } catch (err) {}
     }
 
-    const allSources = [
-      ...wikiResults,
-      ...webResults.map(r => ({
-        title: r.title,
-        url: r.url,
-        content: r.content,
-        source: r.engine || 'Web'
-      }))
-    ].map((s, i) => ({ ...s, id: i + 1 }));
+    const wikiResults = await wikiPromise;
+    const allSources = [...wikiResults, ...webResults.map(r => ({
+      title: r.title,
+      url: r.url,
+      content: r.content,
+      source: r.engine || 'Web'
+    }))].map((s, i) => ({ ...s, id: i + 1 }));
 
     if (allSources.length === 0) {
-      return res.status(503).json({ error: 'No high-quality information found. Please try again.' });
+      return res.status(503).json({ error: 'No information found. Please try again.' });
     }
 
-    // Step 2: Deep AI Analysis Prompt
-    const sourceText = allSources.map(s => `[${s.id}] ${s.title} (Source: ${s.source})\n${s.content}\n---`).join('\n\n');
+    // Step 2: Refined AI Analysis (Direct, Authoritative, No "Thinking" phrases)
+    const sourceText = allSources.map(s => `[${s.id}] ${s.title}\n${s.content}\n---`).join('\n\n');
     
     const researchPrompt = `Research Query: "${query}"
 
@@ -105,14 +103,16 @@ Sources:
 ${sourceText}
 
 Instructions:
-1. Write a high-quality, professional research report in the style of a major newspaper (like The New York Times).
-2. Start with a "EXECUTIVE SUMMARY" (150 words) that provides a sophisticated overview.
-3. Follow with a "DETAILED INVESTIGATION" (500-700 words) with deep analysis and multiple sections.
-4. Cite EVERY claim with [1], [2], etc.
-5. Explicitly mention Ecosia or Wikipedia when referencing their specific data.
-6. Wrap key technical terms or important entities in **Double Asterisks**.
-7. Maintain a formal, objective, and authoritative tone.
-8. Language: English only.
+1. Provide a direct, authoritative research report. 
+2. DO NOT use phrases like "Based on the sources," "I found," or "The search results show." Speak directly as an expert.
+3. Structure:
+   - Start with a bold, clear summary.
+   - Follow with detailed analysis sections.
+   - Use Markdown for structure (## for headers).
+4. Cite claims with [1], [2], etc.
+5. Wrap key technical terms in **Double Asterisks**.
+6. DO NOT highlight headers or subheaders.
+7. Language: English only.
 
 Answer:`;
 
@@ -125,10 +125,10 @@ Answer:`;
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: 'You are a senior investigative journalist. Provide a deep, well-cited research report based on the provided sources.' },
+          { role: 'system', content: 'You are a senior research analyst. Provide direct, objective, and well-cited reports. Never mention your search process.' },
           { role: 'user', content: researchPrompt }
         ],
-        max_tokens: 3500,
+        max_tokens: 3000,
         temperature: 0.2
       })
     });
