@@ -1,12 +1,15 @@
 const fetch = require('node-fetch');
 
 const CONFIG = {
-  // Multiple instances for reliability
+  // Expanded list of public SearxNG instances
   searxngInstances: [
     'https://searx.be',
     'https://search.mdel.net',
     'https://searx.work',
-    'https://priv.au'
+    'https://priv.au',
+    'https://searx.tiekoetter.com',
+    'https://searx.space',
+    'https://search.disroot.org'
   ],
   maxSources: 6
 };
@@ -41,7 +44,10 @@ module.exports = async (req, res) => {
     let searchData = null;
     let lastError = null;
 
-    for (const instance of CONFIG.searxngInstances) {
+    // Shuffle instances to distribute load
+    const shuffledInstances = CONFIG.searxngInstances.sort(() => Math.random() - 0.5);
+
+    for (const instance of shuffledInstances) {
       try {
         const searchUrl = `${instance}/search?` + new URLSearchParams({
           q: query,
@@ -49,12 +55,17 @@ module.exports = async (req, res) => {
           engines: 'google,bing,duckduckgo'
         });
 
-        const searchResponse = await fetch(searchUrl, { timeout: 10000 });
+        const searchResponse = await fetch(searchUrl, { 
+          timeout: 8000,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json'
+          }
+        });
         
-        // Check if response is actually JSON
         const contentType = searchResponse.headers.get('content-type');
         if (!searchResponse.ok || !contentType || !contentType.includes('application/json')) {
-          console.warn(`Instance ${instance} failed or returned non-JSON`);
+          console.warn(`Instance ${instance} failed with status ${searchResponse.status}`);
           continue;
         }
 
@@ -71,7 +82,7 @@ module.exports = async (req, res) => {
 
     if (!searchData?.results?.length) {
       return res.status(503).json({ 
-        error: 'Search engines are currently overloaded. Please try again in a few seconds.',
+        error: 'Search engines are currently busy. Please try your request again in a moment.',
         details: lastError ? lastError.message : 'No results from any instance'
       });
     }
