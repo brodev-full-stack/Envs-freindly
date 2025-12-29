@@ -1,10 +1,10 @@
 class SearchEngine {
-  async search(query) {
-    updateStage('Consulting the archives');
+  async search(query, mode = 'research', history = []) {
+    updateStage(mode === 'discussion' ? 'Consulting the PhD team' : 'Analyzing global data streams');
     const response = await fetch('/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query })
+      body: JSON.stringify({ query, mode, history })
     });
     if (!response.ok) {
       const error = await response.json();
@@ -18,6 +18,8 @@ class UI {
   constructor(engine) {
     this.engine = engine;
     this.zoomLevel = 1;
+    this.discussionHistory = [];
+    this.currentTopic = '';
     this.elements = {
       query: document.getElementById('query'),
       searchBtn: document.getElementById('search-btn'),
@@ -27,16 +29,16 @@ class UI {
       sourcesList: document.getElementById('sources-list'),
       sourceCount: document.getElementById('source-count'),
       copyBtn: document.getElementById('copy-btn'),
-      newSearchBtn: document.getElementById('new-search-btn'),
       gallery: document.getElementById('image-gallery'),
       galleryGrid: document.getElementById('gallery-grid'),
-      videoSection: document.getElementById('video-section'),
-      videoGrid: document.getElementById('video-grid'),
       headline: document.getElementById('article-headline'),
       date: document.getElementById('current-date'),
       zoomIn: document.getElementById('zoom-in'),
       zoomOut: document.getElementById('zoom-out'),
-      toggleContrast: document.getElementById('toggle-contrast')
+      toggleContrast: document.getElementById('toggle-contrast'),
+      discussionMessages: document.getElementById('discussion-messages'),
+      discussionQuery: document.getElementById('discussion-query'),
+      discussionBtn: document.getElementById('discussion-btn')
     };
 
     this.initDate();
@@ -54,7 +56,10 @@ class UI {
       if (e.key === 'Enter') this.search();
     });
     this.elements.copyBtn.addEventListener('click', () => this.copy());
-    this.elements.newSearchBtn.addEventListener('click', () => this.reset());
+    this.elements.discussionBtn.addEventListener('click', () => this.discuss());
+    this.elements.discussionQuery.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this.discuss();
+    });
     
     // Accessibility
     this.elements.zoomIn.addEventListener('click', () => this.zoom(0.1));
@@ -70,6 +75,9 @@ class UI {
   async search() {
     const query = this.elements.query.value.trim();
     if (!query || query.length < 3) return;
+    this.currentTopic = query;
+    this.discussionHistory = [];
+    this.elements.discussionMessages.innerHTML = '';
     this.showLoading();
     try {
       const result = await this.engine.search(query);
@@ -77,6 +85,31 @@ class UI {
     } catch (error) {
       this.showError(error.message);
     }
+  }
+
+  async discuss() {
+    const query = this.elements.discussionQuery.value.trim();
+    if (!query) return;
+    
+    this.addMessage('user', query);
+    this.elements.discussionQuery.value = '';
+    this.discussionHistory.push({ role: 'user', content: query });
+
+    try {
+      const result = await this.engine.search(this.currentTopic, 'discussion', this.discussionHistory);
+      this.addMessage('ai', result.answer);
+      this.discussionHistory.push({ role: 'ai', content: result.answer });
+    } catch (error) {
+      this.addMessage('ai', 'Error connecting to the PhD team.');
+    }
+  }
+
+  addMessage(role, text) {
+    const msg = document.createElement('div');
+    msg.className = `message ${role}`;
+    msg.textContent = text;
+    this.elements.discussionMessages.appendChild(msg);
+    this.elements.discussionMessages.scrollTop = this.elements.discussionMessages.scrollHeight;
   }
 
   showLoading() {
@@ -89,7 +122,7 @@ class UI {
     this.elements.results.classList.remove('hidden');
     this.elements.headline.textContent = query.charAt(0).toUpperCase() + query.slice(1);
 
-    // Images Gallery
+    // Images Gallery (Google Results)
     if (result.images && result.images.length > 0) {
       this.elements.gallery.classList.remove('hidden');
       this.elements.galleryGrid.innerHTML = result.images.map(img => `
@@ -101,14 +134,12 @@ class UI {
       this.elements.gallery.classList.add('hidden');
     }
 
-    // Article Body (Direct Markdown-like formatting)
+    // Article Body
     const formatted = result.answer
       .split('\n')
       .filter(line => line.trim() !== '')
       .map(line => {
-        if (line.startsWith('##')) {
-          return `<h3>${line.replace('##', '').trim()}</h3>`;
-        }
+        if (line.startsWith('##')) return `<h3>${line.replace('##', '').trim()}</h3>`;
         let content = line.replace(/\[(\d+)\]/g, (match, num) => {
           const source = result.sources.find(s => s.id === parseInt(num));
           return source ? `<sup><a href="${source.url}" target="_blank">[${num}]</a></sup>` : match;
@@ -119,20 +150,7 @@ class UI {
       .join('');
     this.elements.answerContent.innerHTML = formatted;
 
-    // Videos
-    if (result.videos && result.videos.length > 0) {
-      this.elements.videoSection.classList.remove('hidden');
-      this.elements.videoGrid.innerHTML = result.videos.map(v => `
-        <div class="video-card" onclick="window.open('${v.url}', '_blank')">
-          <div class="video-thumbnail">MEDIA</div>
-          <div class="video-title">${this.escape(v.title)}</div>
-        </div>
-      `).join('');
-    } else {
-      this.elements.videoSection.classList.add('hidden');
-    }
-
-    // Sources
+    // Sources (Consolidated)
     this.elements.sourceCount.textContent = result.sources.length;
     this.elements.sourcesList.innerHTML = result.sources.map(s => `
       <div class="source-card" onclick="window.open('${s.url}', '_blank')">
@@ -158,13 +176,6 @@ class UI {
       this.elements.copyBtn.textContent = 'Copied';
       setTimeout(() => this.elements.copyBtn.textContent = originalText, 2000);
     });
-  }
-
-  reset() {
-    this.elements.query.value = '';
-    this.elements.results.classList.add('hidden');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    this.elements.query.focus();
   }
 
   escape(text) {

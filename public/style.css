@@ -314,19 +314,86 @@ body.high-contrast .headline {
   justify-content: center;
 }
 
-.btn-action {
-  padding: 0.8rem 2rem;
-  border-radius: 100px;
-  border: 2px solid var(--moz-black);
-  background: transparent;
+.btn-copy-inline {
+  margin-top: 2rem;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--white);
   font-weight: 700;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.btn-action:hover {
+.btn-copy-inline:hover {
+  background: var(--pastel-green-start);
+  border-color: var(--accent-green);
+}
+
+/* Discussion Section */
+.discussion-section {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 2px solid var(--moz-black);
+}
+
+.discussion-box {
+  background: #f0f4f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+.discussion-messages {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.message {
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  max-width: 85%;
+}
+
+.message.user {
+  background: var(--white);
+  align-self: flex-end;
+  border: 1px solid var(--border);
+}
+
+.message.ai {
+  background: var(--pastel-green-end);
+  align-self: flex-start;
+  font-weight: 600;
+}
+
+.discussion-input {
+  display: flex;
+  gap: 10px;
+}
+
+.discussion-input input {
+  flex: 1;
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  outline: none;
+}
+
+.discussion-input button {
+  padding: 0 1.5rem;
   background: var(--moz-black);
   color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 /* Loading */
