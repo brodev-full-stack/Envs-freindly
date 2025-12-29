@@ -1,7 +1,13 @@
 const fetch = require('node-fetch');
 
 const CONFIG = {
-  searxng: 'https://searx.be',
+  // Multiple instances for reliability
+  searxngInstances: [
+    'https://searx.be',
+    'https://search.mdel.net',
+    'https://searx.work',
+    'https://priv.au'
+  ],
   maxSources: 6
 };
 
@@ -26,27 +32,48 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Query required' });
     }
 
-    // HERE GOES YOUR API KEY: You should set this in your environment variables (e.g., .env file or Vercel dashboard)
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
     if (!GROQ_API_KEY) {
       return res.status(500).json({ error: 'API key not configured' });
     }
 
-    // Step 1: Web search (Server-side to bypass CORS)
-    const searchUrl = `${CONFIG.searxng}/search?` + new URLSearchParams({
-      q: query,
-      format: 'json',
-      engines: 'google,bing,duckduckgo'
-    });
+    // Step 1: Web search with fallback logic
+    let searchData = null;
+    let lastError = null;
 
-    const searchResponse = await fetch(searchUrl);
-    if (!searchResponse.ok) {
-      throw new Error('Search engine failed');
+    for (const instance of CONFIG.searxngInstances) {
+      try {
+        const searchUrl = `${instance}/search?` + new URLSearchParams({
+          q: query,
+          format: 'json',
+          engines: 'google,bing,duckduckgo'
+        });
+
+        const searchResponse = await fetch(searchUrl, { timeout: 10000 });
+        
+        // Check if response is actually JSON
+        const contentType = searchResponse.headers.get('content-type');
+        if (!searchResponse.ok || !contentType || !contentType.includes('application/json')) {
+          console.warn(`Instance ${instance} failed or returned non-JSON`);
+          continue;
+        }
+
+        searchData = await searchResponse.json();
+        if (searchData?.results?.length > 0) {
+          console.log(`Successfully fetched results from ${instance}`);
+          break; 
+        }
+      } catch (err) {
+        console.warn(`Error with instance ${instance}:`, err.message);
+        lastError = err;
+      }
     }
-    const searchData = await searchResponse.json();
 
     if (!searchData?.results?.length) {
-      return res.status(404).json({ error: 'No results found' });
+      return res.status(503).json({ 
+        error: 'Search engines are currently overloaded. Please try again in a few seconds.',
+        details: lastError ? lastError.message : 'No results from any instance'
+      });
     }
 
     // Step 2: Process sources
@@ -109,7 +136,9 @@ Answer:`;
     });
 
     if (!groqResponse.ok) {
-      throw new Error('Groq API failed');
+      const errorText = await groqResponse.text();
+      console.error('Groq API Error:', errorText);
+      throw new Error('AI processing failed. Please check your API key configuration.');
     }
 
     const groqData = await groqResponse.json();
@@ -119,7 +148,10 @@ Answer:`;
     });
 
   } catch (error) {
-    console.error('Error:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Server Error:', error);
+    return res.status(500).json({ 
+      error: 'An internal server error occurred.',
+      message: error.message 
+    });
   }
 };

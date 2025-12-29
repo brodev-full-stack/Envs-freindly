@@ -8,9 +8,20 @@ class SearchEngine {
       body: JSON.stringify({ query })
     });
 
+    const contentType = response.headers.get('content-type');
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Research failed');
+      if (contentType && contentType.includes('application/json')) {
+        const error = await response.json();
+        throw new Error(error.error || 'Research failed');
+      } else {
+        const text = await response.text();
+        console.error('Non-JSON error response:', text);
+        throw new Error('Server returned an unexpected response. Please try again.');
+      }
+    }
+
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('Server did not return JSON. Please try again.');
     }
 
     return await response.json();
