@@ -180,5 +180,13 @@ function updateStage(stage) {
 
 document.addEventListener('DOMContentLoaded', () => {
   const engine = new SearchEngine();
-  new UI(engine);
+  const ui = new UI(engine);
+
+  // Handle URL query parameters for browser search integration
+  const urlParams = new URLSearchParams(window.location.search);
+  const query = urlParams.get('q');
+  if (query) {
+    ui.elements.query.value = query;
+    ui.search();
+  }
 });
