@@ -3,54 +3,71 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0060df">
-  <title>Eco AI Search - Deep Research Assistant</title>
+  <title>Eco AI Search | Future of Research</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <h1 class="title">🌱 Eco AI Search</h1>
-      <p class="subtitle">Deep Research • Detailed Answers • Full Citations</p>
-    </header>
-
-    <div class="search-section">
-      <div class="search-box">
-        <textarea 
-          id="query" 
-          placeholder="Ask anything for detailed research..."
-          rows="3"
-        ></textarea>
-        <button id="search-btn" class="search-btn">
-          <span>Research</span>
-          <span>🔍</span>
-        </button>
-      </div>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="/" class="logo">🌱 Eco AI</a>
     </div>
+  </nav>
+
+  <main class="container">
+    <section class="hero">
+      <h1 class="hero-title">Explore issues shaping the future of the internet</h1>
+      <div class="search-container">
+        <div class="search-input-wrapper">
+          <textarea 
+            id="query" 
+            placeholder="Ask anything for detailed research..."
+            rows="1"
+          ></textarea>
+          <button id="search-btn" class="search-btn">Research</button>
+        </div>
+      </div>
+    </section>
 
     <div id="loading" class="loading hidden">
-      <div class="spinner"></div>
-      <p><span id="stage">Searching</span><span class="dots">...</span></p>
-      <p class="sub">This takes 15-30 seconds for quality research</p>
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <p>Analyzing the web<span class="dots">...</span></p>
+      </div>
     </div>
 
     <div id="results" class="results hidden">
-      <div class="answer-card">
-        <div class="header-row">
-          <h2>📄 Answer</h2>
-          <button id="copy-btn" title="Copy">📋</button>
+      <div class="content-grid">
+        <div class="answer-section">
+          <div class="section-header">
+            <h2 class="section-title">The Research Report</h2>
+            <button id="copy-btn" class="icon-btn" title="Copy Report">Copy</button>
+          </div>
+          <div id="answer-content" class="answer-content"></div>
         </div>
-        <div id="answer-content"></div>
-      </div>
 
-      <div class="sources-section">
-        <h3>📚 Sources (<span id="source-count">0</span>)</h3>
-        <div id="sources-list"></div>
+        <aside class="sources-sidebar">
+          <h3 class="sidebar-title">Sources (<span id="source-count">0</span>)</h3>
+          <div id="sources-list" class="sources-list"></div>
+        </aside>
       </div>
-
-      <button id="new-search-btn" class="secondary-btn">New Search</button>
+      
+      <div class="actions">
+        <button id="new-search-btn" class="btn-outline">Start New Research</button>
+      </div>
     </div>
-  </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="logo">🌱 Eco AI</span>
+        <p>Deep Research • Detailed Answers • Full Citations</p>
+      </div>
+      <div class="footer-links">
+        <p>© 2025 Eco AI Search. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
 
   <script src="app.js"></script>
 </body>
