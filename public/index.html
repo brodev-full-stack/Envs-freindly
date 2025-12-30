@@ -3,82 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eco AI Search | Powered by Mozilla Design</title>
+  <title>Eco AI Chat | Powered by Mozilla Design</title>
   <link rel="stylesheet" href="style.css">
   <link rel="search" type="application/opensearchdescription+xml" title="Eco AI Search" href="/opensearch.xml">
 </head>
 <body>
-  <!-- Accessibility Menu -->
-  <div class="accessibility-menu">
-    <button id="zoom-in" title="Zoom In">A+</button>
-    <button id="zoom-out" title="Zoom Out">A-</button>
-    <button id="toggle-contrast" title="High Contrast">◐</button>
-  </div>
-
-  <header class="moz-header">
-    <div class="container">
-      <div class="header-content">
+  <div class="app-layout">
+    <!-- Sidebar for Chat History -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
         <div class="logo">
-          <span class="moz-m">M</span>ozilla <span class="moz-f">Foundation</span>
+          <span class="moz-m">M</span>ozilla
         </div>
-        <nav class="moz-nav">
-          <span>Wikipedia</span>
-          <span>DuckDuckGo</span>
-          <span>Ecosia</span>
-        </nav>
+        <button id="new-chat-btn" class="btn-new-chat">+ New Chat</button>
       </div>
-    </div>
-  </header>
-
-  <main class="container">
-    <section class="hero-section">
-      <h1 class="hero-title">Make good things together</h1>
-      <p class="hero-subtitle">Our tech future is not inevitable—it’s a design choice. Search the open web.</p>
-      
-      <div class="search-container">
-        <div class="search-box">
-          <input type="text" id="query" placeholder="Ask anything...">
-          <button id="search-btn">Search</button>
+      <div id="chat-history" class="chat-history">
+        <!-- History items will be injected here -->
+      </div>
+      <div class="sidebar-footer">
+        <div class="accessibility-tools">
+          <button id="zoom-in" title="Zoom In">A+</button>
+          <button id="zoom-out" title="Zoom Out">A-</button>
+          <button id="toggle-contrast" title="High Contrast">◐</button>
         </div>
       </div>
-    </section>
+    </aside>
 
-    <div id="loading" class="loading hidden">
-      <div class="spinner"></div>
-      <p>Searching the open web<span class="dots">...</span></p>
-    </div>
-
-    <div id="results" class="results hidden">
-      <div class="perplexity-layout">
-        <div class="main-content">
-          <div id="image-gallery" class="gallery-section hidden">
-            <div class="gallery-grid" id="gallery-grid"></div>
-          </div>
-          
-          <div class="answer-section">
-            <h2 id="result-headline" class="result-headline"></h2>
-            <div id="answer-content" class="answer-body"></div>
-            <div class="answer-actions">
-              <button id="copy-btn" class="btn-moz">Copy Answer</button>
-            </div>
-          </div>
+    <!-- Main Chat Area -->
+    <main class="chat-container">
+      <header class="chat-header">
+        <div class="container">
+          <span class="edition-label">Eco AI Chat • Open by Design</span>
         </div>
+      </header>
 
-        <aside class="sidebar">
-          <div class="sidebar-block">
-            <h3 class="sidebar-label">Sources</h3>
-            <div id="sources-list" class="sources-list"></div>
-          </div>
-        </aside>
+      <div id="chat-messages" class="chat-messages">
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="welcome-screen">
+          <h1 class="hero-title">Make good things together</h1>
+          <p class="hero-subtitle">Ask anything. Get accurate, cited answers from the open web.</p>
+        </div>
       </div>
-    </div>
-  </main>
 
-  <footer class="moz-footer">
-    <div class="container">
-      <p>© 2025 Eco AI Search. Inspired by Mozilla Foundation. Open by design.</p>
-    </div>
-  </footer>
+      <div class="input-area">
+        <div class="container">
+          <div class="search-box">
+            <textarea id="query" placeholder="Ask anything..." rows="1"></textarea>
+            <button id="search-btn">
+              <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+            </button>
+          </div>
+          <p class="input-footer">Powered by Google, Wikipedia, and Ecosia results.</p>
+        </div>
+      </div>
+    </main>
+  </div>
 
   <script src="app.js"></script>
 </body>
