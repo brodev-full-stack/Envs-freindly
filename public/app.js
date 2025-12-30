@@ -1,14 +1,14 @@
 class SearchEngine {
-  async search(query, mode = 'research', history = []) {
-    updateStage(mode === 'discussion' ? 'Consulting the PhD team' : 'Analyzing global data streams');
+  async search(query) {
+    updateStage('Searching the open web');
     const response = await fetch('/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, mode, history })
+      body: JSON.stringify({ query })
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Investigation failed');
+      throw new Error(error.error || 'Search failed');
     }
     return await response.json();
   }
@@ -18,8 +18,6 @@ class UI {
   constructor(engine) {
     this.engine = engine;
     this.zoomLevel = 1;
-    this.discussionHistory = [];
-    this.currentTopic = '';
     this.elements = {
       query: document.getElementById('query'),
       searchBtn: document.getElementById('search-btn'),
@@ -31,23 +29,13 @@ class UI {
       copyBtn: document.getElementById('copy-btn'),
       gallery: document.getElementById('image-gallery'),
       galleryGrid: document.getElementById('gallery-grid'),
-      headline: document.getElementById('article-headline'),
-      date: document.getElementById('current-date'),
+      headline: document.getElementById('result-headline'),
       zoomIn: document.getElementById('zoom-in'),
       zoomOut: document.getElementById('zoom-out'),
-      toggleContrast: document.getElementById('toggle-contrast'),
-      discussionMessages: document.getElementById('discussion-messages'),
-      discussionQuery: document.getElementById('discussion-query'),
-      discussionBtn: document.getElementById('discussion-btn')
+      toggleContrast: document.getElementById('toggle-contrast')
     };
 
-    this.initDate();
     this.bindEvents();
-  }
-
-  initDate() {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    this.elements.date.textContent = new Date().toLocaleDateString('en-US', options);
   }
 
   bindEvents() {
@@ -56,10 +44,6 @@ class UI {
       if (e.key === 'Enter') this.search();
     });
     this.elements.copyBtn.addEventListener('click', () => this.copy());
-    this.elements.discussionBtn.addEventListener('click', () => this.discuss());
-    this.elements.discussionQuery.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this.discuss();
-    });
     
     // Accessibility
     this.elements.zoomIn.addEventListener('click', () => this.zoom(0.1));
@@ -74,10 +58,7 @@ class UI {
 
   async search() {
     const query = this.elements.query.value.trim();
-    if (!query || query.length < 3) return;
-    this.currentTopic = query;
-    this.discussionHistory = [];
-    this.elements.discussionMessages.innerHTML = '';
+    if (!query || query.length < 2) return;
     this.showLoading();
     try {
       const result = await this.engine.search(query);
@@ -87,42 +68,18 @@ class UI {
     }
   }
 
-  async discuss() {
-    const query = this.elements.discussionQuery.value.trim();
-    if (!query) return;
-    
-    this.addMessage('user', query);
-    this.elements.discussionQuery.value = '';
-    this.discussionHistory.push({ role: 'user', content: query });
-
-    try {
-      const result = await this.engine.search(this.currentTopic, 'discussion', this.discussionHistory);
-      this.addMessage('ai', result.answer);
-      this.discussionHistory.push({ role: 'ai', content: result.answer });
-    } catch (error) {
-      this.addMessage('ai', 'Error connecting to the PhD team.');
-    }
-  }
-
-  addMessage(role, text) {
-    const msg = document.createElement('div');
-    msg.className = `message ${role}`;
-    msg.textContent = text;
-    this.elements.discussionMessages.appendChild(msg);
-    this.elements.discussionMessages.scrollTop = this.elements.discussionMessages.scrollHeight;
-  }
-
   showLoading() {
     this.elements.loading.classList.remove('hidden');
     this.elements.results.classList.add('hidden');
+    window.scrollTo({ top: this.elements.loading.offsetTop - 100, behavior: 'smooth' });
   }
 
   displayResults(result, query) {
     this.elements.loading.classList.add('hidden');
     this.elements.results.classList.remove('hidden');
-    this.elements.headline.textContent = query.charAt(0).toUpperCase() + query.slice(1);
+    this.elements.headline.textContent = query;
 
-    // Images Gallery (Google Results)
+    // Images Gallery
     if (result.images && result.images.length > 0) {
       this.elements.gallery.classList.remove('hidden');
       this.elements.galleryGrid.innerHTML = result.images.map(img => `
@@ -134,7 +91,7 @@ class UI {
       this.elements.gallery.classList.add('hidden');
     }
 
-    // Article Body
+    // Answer Body
     const formatted = result.answer
       .split('\n')
       .filter(line => line.trim() !== '')
@@ -150,13 +107,12 @@ class UI {
       .join('');
     this.elements.answerContent.innerHTML = formatted;
 
-    // Sources (Consolidated)
-    this.elements.sourceCount.textContent = result.sources.length;
+    // Sources
     this.elements.sourcesList.innerHTML = result.sources.map(s => `
       <div class="source-card" onclick="window.open('${s.url}', '_blank')">
-        <span class="source-number">Source ${s.id} • ${s.source}</span>
+        <span class="source-number">${s.id} • ${s.source}</span>
         <div class="source-title">${this.escape(s.title)}</div>
-        <div class="source-snippet">${this.escape(s.content.substring(0, 100))}...</div>
+        <div class="source-snippet">${this.escape(s.content.substring(0, 80))}...</div>
       </div>
     `).join('');
 

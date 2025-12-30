@@ -3,85 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eco AI Gazette | PhD Research</title>
+  <title>Eco AI Search | Powered by Mozilla Design</title>
   <link rel="stylesheet" href="style.css">
   <link rel="search" type="application/opensearchdescription+xml" title="Eco AI Search" href="/opensearch.xml">
 </head>
 <body>
-  <div class="gradient-bg"></div>
-  
+  <!-- Accessibility Menu -->
   <div class="accessibility-menu">
-    <button id="zoom-in">A+</button>
-    <button id="zoom-out">A-</button>
-    <button id="toggle-contrast">◐</button>
+    <button id="zoom-in" title="Zoom In">A+</button>
+    <button id="zoom-out" title="Zoom Out">A-</button>
+    <button id="toggle-contrast" title="High Contrast">◐</button>
   </div>
 
-  <header class="main-header">
-    <div class="header-content">
-      <div class="header-meta">
-        <span id="current-date"></span>
-        <span class="edition">PhD Investigative Edition</span>
+  <header class="moz-header">
+    <div class="container">
+      <div class="header-content">
+        <div class="logo">
+          <span class="moz-m">M</span>ozilla <span class="moz-f">Foundation</span>
+        </div>
+        <nav class="moz-nav">
+          <span>Wikipedia</span>
+          <span>DuckDuckGo</span>
+          <span>Ecosia</span>
+        </nav>
       </div>
-      <h1 class="site-title">The Eco AI Gazette</h1>
     </div>
   </header>
 
   <main class="container">
-    <section class="search-section">
-      <div class="search-box">
-        <input type="text" id="query" placeholder="Enter research topic for PhD analysis...">
-        <button id="search-btn">Investigate</button>
+    <section class="hero-section">
+      <h1 class="hero-title">Make good things together</h1>
+      <p class="hero-subtitle">Our tech future is not inevitable—it’s a design choice. Search the open web.</p>
+      
+      <div class="search-container">
+        <div class="search-box">
+          <input type="text" id="query" placeholder="Ask anything...">
+          <button id="search-btn">Search</button>
+        </div>
       </div>
     </section>
 
     <div id="loading" class="loading hidden">
       <div class="spinner"></div>
-      <p>Analyzing global data streams<span class="dots">...</span></p>
+      <p>Searching the open web<span class="dots">...</span></p>
     </div>
 
     <div id="results" class="results hidden">
-      <!-- Image Gallery (Google Search Results) -->
-      <div id="image-gallery" class="gallery-section hidden">
-        <h3 class="sidebar-label">Visual Data (Google)</h3>
-        <div class="gallery-grid" id="gallery-grid"></div>
-      </div>
-
-      <div class="newspaper-layout">
-        <article class="main-story">
-          <header class="story-header">
-            <h2 id="article-headline" class="headline"></h2>
-            <div class="byline">By Eco AI PhD Research Team</div>
-          </header>
-          <div class="article-container">
-            <div id="answer-content" class="story-body"></div>
-            <button id="copy-btn" class="btn-copy-inline">Copy Report</button>
+      <div class="perplexity-layout">
+        <div class="main-content">
+          <div id="image-gallery" class="gallery-section hidden">
+            <div class="gallery-grid" id="gallery-grid"></div>
           </div>
-
-          <!-- Discussion Feature -->
-          <section class="discussion-section">
-            <h3 class="sidebar-label">Interactive Discussion</h3>
-            <div id="discussion-box" class="discussion-box">
-              <div id="discussion-messages" class="discussion-messages"></div>
-              <div class="discussion-input">
-                <input type="text" id="discussion-query" placeholder="Ask the PhD team about this topic...">
-                <button id="discussion-btn">Ask</button>
-              </div>
+          
+          <div class="answer-section">
+            <h2 id="result-headline" class="result-headline"></h2>
+            <div id="answer-content" class="answer-body"></div>
+            <div class="answer-actions">
+              <button id="copy-btn" class="btn-moz">Copy Answer</button>
             </div>
-          </section>
-        </article>
+          </div>
+        </div>
 
         <aside class="sidebar">
-          <section class="sidebar-block">
-            <h3 class="sidebar-label">Consolidated Sources (<span id="source-count">0</span>)</h3>
+          <div class="sidebar-block">
+            <h3 class="sidebar-label">Sources</h3>
             <div id="sources-list" class="sources-list"></div>
-          </section>
+          </div>
         </aside>
       </div>
     </div>
   </main>
 
-  <footer class="main-footer">
-    <p>© 2025 The Eco AI Gazette. Objective PhD-Level Research.</p>
+  <footer class="moz-footer">
+    <div class="container">
+      <p>© 2025 Eco AI Search. Inspired by Mozilla Foundation. Open by design.</p>
+    </div>
   </footer>
 
   <script src="app.js"></script>
